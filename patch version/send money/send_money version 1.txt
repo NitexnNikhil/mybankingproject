@@ -1,0 +1,63 @@
+<!--Added the send money module to the recipent to drop down list-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Send Money</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .balance {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #1E90FF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <a href="/account" class="back-button">Back</a>
+    <div class="container">
+        <h1>Send Money</h1>
+        <p class="balance">Account Balance: ${{ balance }}</p>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="post" action="/send_money">
+            <label for="recipient">Recipient Account Number:</label>
+            <select id="recipient" name="recipient" required>
+                <option value="">Select Account</option>
+                {% for account in accounts %}
+                    <option value="{{ account[0] }}">{{ account[1] }} ({{ account[0] }})</option>
+                {% endfor %}
+            </select>
+            <br><br>
+            <label for="amount">Amount to Send:</label>
+            <input type="number" id="amount" name="amount" min="1" required>
+            <br><br>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+</body>
+</html>

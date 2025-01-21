@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Information</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff; /* Trustworthy blue color */
+        }
+        .account-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #fff;
+            text-align: center; /* Center the text */
+        }
+        .account-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1E90FF; /* Dark blue color */
+        }
+        .balance-text {
+            font-size: 18px;
+            margin-top: 20px;
+            color: #333;
+        }
+        .balance {
+            font-size: 22px;
+            font-weight: bold;
+            color: #228B22; /* Green color for balance */
+        }
+        .logout-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: #1E90FF; /* Blue color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="account-container">
+        <div>Your Account Number is</div>
+        <div class="account-number">
+            {{ account_number }}
+        </div>
+        
+        <!-- Step 1: Text indicating balance -->
+        <div class="balance-text">
+            Your Balance is:
+        </div>
+        
+        <!-- Step 2: Display the balance fetched from the database -->
+        <div class="balance">
+            {{ balance }}
+        </div>
+    </div>
+    
+    <form method="GET" action="{{ url_for('logout') }}">
+        <button class="logout-button">Logout</button>
+    </form>
+</body>
+</html>

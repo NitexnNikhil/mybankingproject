@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff; /* Trustworthy blue color */
+        }
+        header {
+            width: 100%;
+            padding: 10px;
+            position: absolute;
+            top: 0;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        header img {
+            width: 5cm;
+            height: 5cm;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #fff;
+        }
+        .container input {
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 300px;
+        }
+        .container .captcha {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #eee;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .container button {
+            background-color: #1E90FF; /* Blue color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .login-title {
+            font-size: 30px; /* Increased size */
+            color: #1E90FF; /* Dark blue color */
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold; /* Bold text */
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="image-container">
+            <img src="{{ url_for('static', filename='Logo.jpg') }}" alt="Account Management">
+        </div>
+    </header>
+    <div class="container">
+        <div class="login-title">Login</div>
+        <form method="POST" action="{{ url_for('do_login') }}">
+            <input type="text" name="email_or_phone" placeholder="Enter your email or phone no" required>
+            <input type="password" name="password" placeholder="Enter your Password" required>
+            <div class="captcha">{{ captcha }}</div>
+            <input type="text" name="captcha" placeholder="Enter the captcha" required>
+            <button type="submit">Login</button>
+        </form>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!--Added the transaction table accouunt number (Added & deducted)-->
+
+<!--With timing & Dr -->
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Page</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff; /* Trustworthy blue color */
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #1E90FF; /* Blue color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .download-button {
+            background-color: #28a745; /* Green color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            margin-top: 20px;
+        }
+        .welcome-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+        }
+        table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 80%;
+            background-color: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .amount-added {
+            color: green;
+        }
+        .amount-deducted {
+            color: red;
+        }
+    </style>
+    <script>
+        function downloadCSV() {
+            const rows = document.querySelectorAll('table tr');
+            let csvContent = "data:text/csv;charset=utf-8,";
+
+            rows.forEach(row => {
+                let cols = row.querySelectorAll('th, td');
+                let rowData = [];
+                cols.forEach(col => {
+                    rowData.push(col.innerText);
+                });
+                csvContent += rowData.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "transactions.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</head>
+<body>
+    <a href="account" class="back-button">Back</a>
+    <div class="welcome-text">
+        Welcome to the Transaction Page
+    </div>
+    <table>
+        <tr>
+            <th>Account Number (Added)</th>
+            <th>Amount Added</th>
+            <th>Account Number (Deducted)</th>
+            <th>Amount Deducted</th>
+            <th>Date & Time</th>
+        </tr>
+        {% for transaction in transactions %}
+        <tr>
+            <td>{{ transaction[1] }}</td>
+            <td class="amount-added">{% if transaction[3] == 'Cr' %}₹{{ transaction[2] }}{% endif %}</td>
+            <td>{{ transaction[0] }}</td>
+            <td class="amount-deducted">{% if transaction[3] == 'Dr' %}₹{{ transaction[2] }} Dr{% endif %}</td>
+            <td>{{ transaction[4] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <button class="download-button" onclick="downloadCSV()">Download CSV</button>
+</body>
+</html>

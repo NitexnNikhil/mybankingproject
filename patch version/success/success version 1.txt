@@ -1,0 +1,25 @@
+<!--Added auto redirect to previous page after 5 seconds-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Transaction Success</title>
+    <meta http-equiv="refresh" content="5; url={{ url_for('send_money') }}">
+    <script>
+        var timeLeft = 5;
+        function countdown() {
+            var timer = document.getElementById("timer");
+            if (timeLeft > 0) {
+                timeLeft--;
+                timer.innerHTML = "Redirecting in " + timeLeft + " seconds...";
+                setTimeout(countdown, 1000);
+            }
+        }
+        window.onload = countdown;
+    </script>
+</head>
+<body>
+    <h1>Transaction Successful!</h1>
+    <p id="timer">Redirecting in 5 seconds...</p>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create a Bank Account</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 50%;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .form-group button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+    </style>
+    <script>
+        async function handleSubmit(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(event.target); // Collect form data
+
+            try {
+                // Send data to the backend using Fetch API
+                const response = await fetch("/submit", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                // Parse the JSON response from the backend
+                const result = await response.json();
+                const messageDiv = document.getElementById("message");
+
+                // Clear any previous messages
+                messageDiv.innerHTML = "";
+
+                if (result.success) {
+                    // Display success message if submission is successful
+                    const successMsg = document.createElement("div");
+                    successMsg.className = "success";
+                    successMsg.textContent = result.message;
+                    messageDiv.appendChild(successMsg);
+
+                    // Redirect to the login page after a short delay
+                    setTimeout(() => {
+                        window.location.href = "/login";
+                    }, 2000); // 2 seconds delay before redirect
+                } else {
+                    // Display error messages if validation fails
+                    const errorMsg = document.createElement("div");
+                    errorMsg.className = "error";
+                    errorMsg.textContent = result.message; // Displaying the specific error from Flask
+                    messageDiv.appendChild(errorMsg);
+                }
+            } catch (error) {
+                // Handle fetch errors
+                console.error("Error occurred during form submission:", error);
+                const messageDiv = document.getElementById("message");
+                messageDiv.innerHTML = "<div class='error'>An unexpected error occurred. Please try again.</div>";
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Create a Bank Account</h1>
+        <form id="accountForm" onsubmit="handleSubmit(event)">
+            <div id="message"></div> <!-- Placeholder for error/success messages -->
+            <div class="form-group">
+                <label for="name">Full Name:</label>
+                <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email address" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone Number:</label>
+                <input type="tel" id="phone" name="phone" placeholder="Enter your phone number" required>
+            </div>
+            <div class="form-group">
+                <label for="address">Address:</label>
+                <input type="text" id="address" name="address" placeholder="Enter your address" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" placeholder="Create a password" required>
+            </div>
+            <!-- Optional CAPTCHA field (if desired for registration) -->
+            <!--
+            <div class="form-group">
+                <label for="captcha">Captcha: <strong>{{ captcha }}</strong></label>
+                <input type="text" id="captcha" name="captcha" placeholder="Enter the captcha" required>
+            </div>
+            -->
+            <div class="form-group">
+                <button type="submit">Submit</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

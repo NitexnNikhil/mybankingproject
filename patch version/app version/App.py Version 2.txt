@@ -1,0 +1,130 @@
+# Added module to check if email/phone number is already exist in or not
+
+from flask import Flask, render_template, request, jsonify
+import re
+import sqlite3
+import random
+
+app = Flask(__name__)
+
+def validate_input(data):
+    errors = []
+
+    # Validate Full Name
+    if not data.get("name") or len(data["name"]) < 2:
+        errors.append("Full Name must be at least 2 characters long.")
+
+    # Validate Email
+    email_pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    if not data.get("email") or not re.match(email_pattern, data["email"]):
+        errors.append("Invalid Email Address.")
+
+    # Validate Phone Number
+    phone_pattern = r'^\+?\d{10}$'
+    if not data.get("phone") or not re.match(phone_pattern, data["phone"]):
+        errors.append("Invalid Phone Number. It must be 10 digit long.")
+
+    # Validate Address
+    if not data.get("address") or len(data["address"]) < 5:
+        errors.append("Address must be at least 5 characters long.")
+
+    # Validate Password
+    password_pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$'
+    if not data.get("password") or not re.match(password_pattern, data["password"]):
+        errors.append("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one symbol.")
+
+    return errors
+
+def generate_account_no():
+    return random.randint(100000000000, 999999999999)
+
+# Function to check if the email or phone number already exists in the database
+def is_existing_user(email, phone):
+    conn = sqlite3.connect('bank_account.db')
+    cursor = conn.cursor()
+    
+    # Check if email or phone already exists in the database
+    cursor.execute('SELECT id FROM accounts WHERE email = ? OR phone = ?', (email, phone))
+    existing_user = cursor.fetchone()
+    
+    conn.close()
+    
+    # If existing user is found, return True, else False
+    return existing_user is not None
+
+@app.route("/")
+def index():
+    return render_template("form.html")
+@app.route('/submit', methods=['POST'])
+def submit():
+    try:
+        data = request.form
+        errors = validate_input(data)
+        if errors:
+            return jsonify({"success": False, "errors": errors})
+
+        name = data['name']
+        email = data['email']
+        phone = data['phone']
+        address = data['address']
+        password = data['password']
+        acc_no = generate_account_no()
+
+        # Check if email or phone number already exists in the database
+        if is_existing_user(email, phone):
+            # Check if the email already exists
+            conn = sqlite3.connect('bank_account.db')
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM accounts WHERE email = ?', (email,))
+            email_exists = cursor.fetchone()
+
+            # Check if the phone number already exists
+            cursor.execute('SELECT id FROM accounts WHERE phone = ?', (phone,))
+            phone_exists = cursor.fetchone()
+            conn.close()
+
+            if email_exists:
+                return jsonify({"success": False, "message": "Email already exists."})
+            if phone_exists:
+                return jsonify({"success": False, "message": "Phone number already exists."})
+
+        # Log the incoming data
+        print(f"Data received: {name}, {email}, {phone}, {address}, {password}, {acc_no}")
+
+        # Insert data into SQLite database
+        conn = sqlite3.connect('bank_account.db')
+        cursor = conn.cursor()
+        cursor.execute(''' 
+            INSERT INTO accounts (name, email, phone, address, password, acc_no)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (name, email, phone, address, password, acc_no))
+        conn.commit()
+        conn.close()
+
+        return jsonify({"success": True, "message": "Form submitted successfully!"})
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return jsonify({"success": False, "message": f"An error occurred: {e}"})
+
+
+# Database setup (only run this once during initial setup)
+def setup_database():
+    conn = sqlite3.connect('bank_account.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        phone TEXT NOT NULL UNIQUE,
+        address TEXT NOT NULL,
+        password TEXT NOT NULL,
+        acc_no INTEGER NOT NULL UNIQUE
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
+if __name__ == "__main__":
+    setup_database()  # Only call this when setting up for the first time
+    app.run(debug=True)

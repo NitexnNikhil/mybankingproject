@@ -1,0 +1,281 @@
+# Added the transaction table in db
+
+# Added the routing of all templates
+
+# Created the main db named as bank_account.db
+
+
+
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+import re
+import sqlite3
+import random
+import os
+from datetime import datetime
+
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # Replace this with a strong secret key
+
+def validate_input(data):
+    errors = []
+
+    # Validate Full Name
+    if not data.get("name") or len(data["name"]) < 2:
+        errors.append("Full Name must be at least 2 characters long.")
+
+    # Validate Email
+    email_pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    if not data.get("email") or not re.match(email_pattern, data["email"]):
+        errors.append("Invalid Email Address.")
+
+    # Validate Phone Number
+    phone_pattern = r'^\+?\d{10}$'
+    if not data.get("phone") or not re.match(phone_pattern, data["phone"]):
+        errors.append("Invalid Phone Number. It must be 10 digits long.")
+
+    # Validate Address
+    if not data.get("address") or len(data["address"]) < 5:
+        errors.append("Address must be at least 5 characters long.")
+
+    # Validate Password
+    password_pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$'
+    if not data.get("password") or not re.match(password_pattern, data["password"]):
+        errors.append("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one symbol.")
+
+    return errors
+
+def generate_account_no():
+    return random.randint(100000000000, 999999999999)
+
+def generate_captcha():
+    return ''.join(random.choices('0123456789', k=6))
+
+def is_existing_user(email, phone):
+    conn = sqlite3.connect('bank_account.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM accounts WHERE email = ? OR phone = ?', (email, phone))
+    existing_user = cursor.fetchone()
+    conn.close()
+    return existing_user is not None
+
+@app.route("/")
+def home():
+    return render_template("home.html")
+
+@app.route("/form")
+def form():
+    return render_template("form.html")
+
+@app.route("/login")
+def login():
+    captcha = generate_captcha()
+    session['captcha'] = captcha
+    return render_template('login.html', captcha=captcha)
+
+@app.route('/submit', methods=['POST'])
+def submit():
+    try:
+        data = request.form
+        errors = validate_input(data)
+        if errors:
+            return jsonify({"success": False, "errors": errors})
+
+        name = data['name']
+        email = data['email']
+        phone = data['phone']
+        address = data['address']
+        password = data['password']
+        acc_no = generate_account_no()
+
+        # Generate a random balance between 1000 and 10000
+        balance = random.randint(1000, 10000)
+
+        if is_existing_user(email, phone):
+            conn = sqlite3.connect('bank_account.db')
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM accounts WHERE email = ?', (email,))
+            email_exists = cursor.fetchone()
+            cursor.execute('SELECT id FROM accounts WHERE phone = ?', (phone,))
+            phone_exists = cursor.fetchone()
+            conn.close()
+            if email_exists:
+                return jsonify({"success": False, "message": "Email already exists."})
+            if phone_exists:
+                return jsonify({"success": False, "message": "Phone number already exists."})
+
+        # Store account information along with the balance
+        conn = sqlite3.connect('bank_account.db')
+        cursor = conn.cursor()
+        cursor.execute(''' 
+            INSERT INTO accounts (name, email, phone, address, password, acc_no, balance)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (name, email, phone, address, password, acc_no, balance))
+        conn.commit()
+        conn.close()
+
+        # Save account details to the text file
+        account_details = f"{acc_no}, {name}, {phone}, {email}, {password}, {balance}\n"
+        file_path = r"/Users/nikhilpathrabe/Documents/Projects/masai proj BAMS(Bank Account Managment System)/Account details.txt"
+        if not os.path.exists(os.path.dirname(file_path)):
+            os.makedirs(os.path.dirname(file_path))
+        with open(file_path, 'a') as file:
+            file.write(account_details)
+
+        return jsonify({"success": True, "message": "Form submitted successfully!"})
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return jsonify({"success": False, "message": f"An error occurred: {e}"})
+
+@app.route('/login', methods=['POST'])
+def do_login():
+    email_or_phone = request.form['email_or_phone']
+    password = request.form['password']
+    captcha_input = request.form['captcha']
+    if captcha_input != session['captcha']:
+        return render_template('login.html', error='Invalid captcha.', captcha=session['captcha'])
+    conn = sqlite3.connect('bank_account.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT acc_no FROM accounts WHERE (email = ? OR phone = ?) AND password = ?', (email_or_phone, email_or_phone, password))
+    user = cursor.fetchone()
+    conn.close()
+    if user:
+        account_no = user[0]
+        session['acc_no'] = account_no  # Store account number in session
+        return redirect(url_for('account', acc_no=account_no))
+    else:
+        return render_template('login.html', error='Invalid email or password.', captcha=session['captcha'])
+
+@app.route('/account')
+def account():
+    acc_no = session.get('acc_no')
+
+    # Fetch balance from the database using the account number
+    conn = sqlite3.connect('bank_account.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT balance FROM accounts WHERE acc_no = ?', (acc_no,))
+    balance = cursor.fetchone()
+    conn.close()
+
+    if balance:
+        balance = balance[0]  # Extract balance value from the tuple
+        return render_template('account.html', account_number=acc_no, balance=balance)
+    else:
+        return render_template('account.html', account_number=acc_no, balance="Balance not found")
+
+@app.route('/send_money', methods=['GET', 'POST'])
+def send_money():
+    acc_no = session.get('acc_no')  # Assuming the account number is stored in session
+
+    if request.method == 'POST':
+        recipient_acc_no = request.form['recipient']
+        amount = int(request.form['amount'])
+
+        # Open database connection
+        conn = sqlite3.connect('bank_account.db')
+        cursor = conn.cursor()
+
+        # Fetch sender's balance
+        cursor.execute('SELECT balance FROM accounts WHERE acc_no = ?', (acc_no,))
+        sender_balance = cursor.fetchone()[0]
+
+        # Check if sender has enough balance
+        if sender_balance >= amount:
+            # Deduct amount from sender's balance
+            cursor.execute('UPDATE accounts SET balance = balance - ? WHERE acc_no = ?', (amount, acc_no))
+            
+            # Add amount to recipient's balance
+            cursor.execute('UPDATE accounts SET balance = balance + ? WHERE acc_no = ?', (amount, recipient_acc_no))
+
+            # Log the transaction
+            date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute(''' 
+                INSERT INTO transactions (sender_acc_no, recipient_acc_no, amount, type, date_time)
+                VALUES (?, ?, ?, 'Dr', ?)
+            ''', (acc_no, recipient_acc_no, amount, date_time))
+            cursor.execute(''' 
+                INSERT INTO transactions (sender_acc_no, recipient_acc_no, amount, type, date_time)
+                VALUES (?, ?, ?, 'Cr', ?)
+            ''', (recipient_acc_no, acc_no, amount, date_time))
+
+            conn.commit()
+            conn.close()
+            return redirect(url_for('success'))
+        else:
+            conn.close()
+            conn = sqlite3.connect('bank_account.db')
+            cursor = conn.cursor()
+            cursor.execute('SELECT acc_no, name FROM accounts WHERE acc_no != ?', (acc_no,))
+            accounts = cursor.fetchall()
+            conn.close()
+            return render_template('send_money.html', balance=sender_balance, error="Insufficient balance.", accounts=accounts)
+
+    else:
+        conn = sqlite3.connect('bank_account.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT balance FROM accounts WHERE acc_no = ?', (acc_no,))
+        balance = cursor.fetchone()[0]
+        cursor.execute('SELECT acc_no, name FROM accounts WHERE acc_no != ?', (acc_no,))
+        accounts = cursor.fetchall()
+        conn.close()
+
+        return render_template('send_money.html', balance=balance, accounts=accounts)
+    
+@app.route('/transaction')
+def transaction():
+    acc_no = session.get('acc_no')
+
+    conn = sqlite3.connect('bank_account.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT sender_acc_no, recipient_acc_no, amount, type, date_time FROM transactions 
+        WHERE sender_acc_no = ? OR recipient_acc_no = ?
+    ''', (acc_no, acc_no))
+    transactions = cursor.fetchall()
+    conn.close()
+
+    # Debugging: print the fetched transactions to the console
+    print(transactions)
+
+    return render_template('transaction.html', transactions=transactions)
+
+
+@app.route('/success')
+def success():
+    return render_template('success.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('home'))
+
+def setup_database():
+    conn = sqlite3.connect('bank_account.db')
+    cursor = conn.cursor()
+    cursor.execute('''  
+    CREATE TABLE IF NOT EXISTS accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        phone TEXT NOT NULL UNIQUE,
+        address TEXT NOT NULL,
+        password TEXT NOT NULL,
+        acc_no INTEGER NOT NULL UNIQUE,
+        balance INTEGER NOT NULL
+    )
+    ''')
+    cursor.execute('''  
+    CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_acc_no INTEGER NOT NULL,
+        recipient_acc_no INTEGER NOT NULL,
+        amount INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        date_time TEXT NOT NULL
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
+if __name__ == "__main__":
+    setup_database()  # Only call this when setting up for the first time
+    app.run(debug=True)
