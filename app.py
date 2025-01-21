@@ -60,7 +60,7 @@ def is_existing_user(email, phone):
 
 @app.route("/")
 def home():
-    return render_template("home.html")
+    return render_template("index.html")
 
 @app.route("/form")
 def form():
@@ -230,6 +230,7 @@ def transaction():
         SELECT sender_acc_no, recipient_acc_no, amount, type, date_time FROM transactions 
         WHERE sender_acc_no = ? OR recipient_acc_no = ?
     ''', (acc_no, acc_no))
+
     transactions = cursor.fetchall()
     conn.close()
 
@@ -246,7 +247,7 @@ def success():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('home'))
+    return redirect(url_for('index'))
 
 def setup_database():
     conn = sqlite3.connect('bank_account.db')
